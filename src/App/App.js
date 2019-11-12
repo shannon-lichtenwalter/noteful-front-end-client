@@ -7,6 +7,9 @@ import AddNote from '../AddNote/AddNote';
 import DetailedNote from "../DetailedNote/DetailedNote";
 import NotefulContext from '../NotefulContext';
 import ErrorBoundary from '../ErrorBoundary';
+import config from '../config';
+
+const API_ENDPOINT = config.API_ENDPOINT;
 
 class App extends Component {
 	state = {
@@ -25,8 +28,9 @@ class App extends Component {
 			content: newNoteContent
 		}
 
+
 		const editedNote = JSON.stringify(editedNoteObj);
-		fetch(`http://localhost:8000/api/notes/${noteId}`, {
+		fetch(`${API_ENDPOINT}api/notes/${noteId}`, {
 			method: 'PATCH',
 			headers: { 'Content-Type': 'application/json' },
 			body: editedNote
@@ -60,7 +64,7 @@ class App extends Component {
 		}
 
 		const newNoteJson = JSON.stringify(newNoteObj);
-		fetch('http://localhost:8000/api/notes',
+		fetch(`${API_ENDPOINT}api/notes`,
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -84,7 +88,7 @@ class App extends Component {
 			name: folderName,
 		}
 		const finalObj = JSON.stringify(newObj)
-		fetch('http://localhost:8000/api/folders',
+		fetch(`${API_ENDPOINT}api/folders`,
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -103,13 +107,13 @@ class App extends Component {
 	}
 
 	componentDidMount() {
-		fetch('http://localhost:8000/api/folders').then(res => res.json()).then(data => this.setState({ folders: data }));
-		fetch('http://localhost:8000/api/notes').then(res => res.json()).then(data => this.setState({ notes: data }));
+		fetch(`${API_ENDPOINT}api/folders`).then(res => res.json()).then(data => this.setState({ folders: data }));
+		fetch(`${API_ENDPOINT}api/notes`).then(res => res.json()).then(data => this.setState({ notes: data }));
 	}
 
 	deleteNote = (id) => {
 
-		fetch(`http://localhost:8000/api/notes/${id}`, {
+		fetch(`${API_ENDPOINT}api/notes/${id}`, {
 			method: 'DELETE'
 		}).then(() => this.setState({ notes: this.state.notes.filter(note => note.id !== id) }));
 	};
@@ -121,101 +125,100 @@ class App extends Component {
 	}
 
 	deleteFolder = (folderId) => {
-		fetch(`http://localhost:8000/api/folders/${folderId}`, {
+		fetch(`${API_ENDPOINT}api/folders/${folderId}`, {
 			method: 'DELETE'
 		})
 			.then((res) => {
-				if(!res.ok){
+				if (!res.ok) {
 					throw new Error(res.status)
 				}
 				return res.status;
 			})
-				.then(() => {
-				
+			.then(() => {
+
 				const notes = this.state.notes.filter(note => parseInt(note.folder_id) !== parseInt(folderId));
 				const folders = this.state.folders.filter(folder => parseInt(folder.id) !== parseInt(folderId))
 
 				this.setState({
 					notes,
 					folders
-				})	
+				})
 			})
 	};
 
-render() {
+	render() {
+		return (
 
-	return (
+			<NotefulContext.Provider value={{
+				notes: this.state.notes,
+				folders: this.state.folders,
+				deleteNote: this.deleteNote,
+				addFolder: this.addFolder,
+				addNote: this.addNote,
+				errors: this.state.errors,
+				editNote: this.editNote,
+				stopAdding: this.stopAdding,
+				deleteFolder: this.deleteFolder
 
-		<NotefulContext.Provider value={{
-			notes: this.state.notes,
-			folders: this.state.folders,
-			deleteNote: this.deleteNote,
-			addFolder: this.addFolder,
-			addNote: this.addNote,
-			errors: this.state.errors,
-			editNote: this.editNote,
-			stopAdding: this.stopAdding,
-			deleteFolder: this.deleteFolder
-
-		}}>
+			}}>
 
 
-			<div className="App">
-				<div className="App-header">
-					<Link to='/'>Noteful </Link>
-					{this.state.errors && <p>{this.state.errors}</p>}
+				<div className="App">
+					<div className="App-header">
+						<Link to='/'>Noteful </Link>
+						{this.state.errors && <p>{this.state.errors}</p>}
 
+					</div>
+					<ErrorBoundary>
+						<div className='SideNav'>
+							<Switch>
+								<Route path='/notes/:noteId' render={(routeProps) => {
+									const note = this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId));
+									if (note) {
+										const folder = { ...this.state.folders.find(folder => folder.id === note.folder_id) };
+										return (
+											<div>
+												<div>{folder.name}</div>
+												<Link to={'/folders/' + folder.id}>Go Back To</Link>
+											</div>)
+									}
+								}} />
+								<Route path='/folders/:folderId'
+									render={(routeProps) => <FolderList
+										id={parseInt(routeProps.match.params.folderId)} />} />
+								<Route exact path='/' render={(routeProps) => <FolderList />} />
+							</Switch>
+						</div>
+						<div className='Main'>
+							<Switch>
+								<Route path='/notes/:noteId'
+									render={(routeProps) =>
+										<DetailedNote note={this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId))} />
+									}
+								/>
+								<Route path='/folders/:folderId'
+									render={(routeProps) =>
+										<NoteList folderId={parseInt(routeProps.match.params.folderId)} />
+									}
+								/>
+								<Route exact path='/'
+									render={() =>
+										<NoteList />
+									}
+								/>
+							</Switch>
+
+							<button onClick={() => this.setState({ addingNote: true })}> Add Note</button>
+							{this.state.addingNote && <AddNote />}
+
+						</div>
+					</ErrorBoundary>
 				</div>
-				<ErrorBoundary>
-					<div className='SideNav'>
-						<Switch>
-							<Route path='/notes/:noteId' render={(routeProps) => {
-								const note = this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId));
-								if (note) {
-									const folder = { ...this.state.folders.find(folder => folder.id === note.folder_id) };
-									return (
-										<div>
-											<div>{folder.name}</div>
-											<Link to={'/folders/' + folder.id}>Go Back To</Link>
-										</div>)
-								}
-							}} />
-							<Route path='/folders/:folderId'
-								render={(routeProps) => <FolderList
-									id={parseInt(routeProps.match.params.folderId)} />} />
-							<Route exact path='/' render={(routeProps) => <FolderList />} />
-						</Switch>
-					</div>
-					<div className='Main'>
-						<Switch>
-							<Route path='/notes/:noteId'
-								render={(routeProps) =>
-									<DetailedNote note={this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId))} />
-								}
-							/>
-							<Route path='/folders/:folderId'
-								render={(routeProps) =>
-									<NoteList folderId={parseInt(routeProps.match.params.folderId)} />
-								}
-							/>
-							<Route exact path='/'
-								render={() =>
-									<NoteList />
-								}
-							/>
-						</Switch>
 
-						<button onClick={() => this.setState({ addingNote: true })}> Add Note</button>
-						{this.state.addingNote && <AddNote />}
+			</NotefulContext.Provider>
 
-					</div>
-				</ErrorBoundary>
-			</div>
-
-		</NotefulContext.Provider>
-
-	)
-}
+		)
+	}
 }
 
 export default App;
