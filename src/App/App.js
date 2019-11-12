@@ -31,23 +31,23 @@ class App extends Component {
 			headers: { 'Content-Type': 'application/json' },
 			body: editedNote
 		})
-		.then(res => {
-			if (!res.ok){
-				throw new Error(res.status)
-			}
-			return res.json()
-		})
-		.then((data) => {
-			console.log(data);
-			const index = this.state.notes.findIndex(note => note.id === data.id);
-			const notes = this.state.notes;
-			notes[index] = data;
+			.then(res => {
+				if (!res.ok) {
+					throw new Error(res.status)
+				}
+				return res.json()
+			})
+			.then((data) => {
+				console.log(data);
+				const index = this.state.notes.findIndex(note => note.id === data.id);
+				const notes = this.state.notes;
+				notes[index] = data;
 
-			this.setState({
-				notes,
-		})
-	})
-		
+				this.setState({
+					notes,
+				})
+			})
+
 	}
 
 	addNote = (newNoteName, newNoteContent, folderId) => {
@@ -114,77 +114,108 @@ class App extends Component {
 		}).then(() => this.setState({ notes: this.state.notes.filter(note => note.id !== id) }));
 	};
 
-	render() {
-		return (
+	stopAdding = () => {
+		this.setState({
+			addingNote: false
+		})
+	}
 
-			<NotefulContext.Provider value={{
-				notes: this.state.notes,
-				folders: this.state.folders,
-				deleteNote: this.deleteNote,
-				addFolder: this.addFolder,
-				addNote: this.addNote,
-				errors: this.state.errors,
-				editNote: this.editNote
+	deleteFolder = (folderId) => {
+		fetch(`http://localhost:8000/api/folders/${folderId}`, {
+			method: 'DELETE'
+		})
+			.then((res) => {
+				if(!res.ok){
+					throw new Error(res.status)
+				}
+				return res.status;
+			})
+				.then(() => {
+				
+				const notes = this.state.notes.filter(note => parseInt(note.folder_id) !== parseInt(folderId));
+				const folders = this.state.folders.filter(folder => parseInt(folder.id) !== parseInt(folderId))
 
-			}}>
+				this.setState({
+					notes,
+					folders
+				})	
+			})
+	};
+
+render() {
+
+	return (
+
+		<NotefulContext.Provider value={{
+			notes: this.state.notes,
+			folders: this.state.folders,
+			deleteNote: this.deleteNote,
+			addFolder: this.addFolder,
+			addNote: this.addNote,
+			errors: this.state.errors,
+			editNote: this.editNote,
+			stopAdding: this.stopAdding,
+			deleteFolder: this.deleteFolder
+
+		}}>
 
 
-				<div className="App">
-					<div className="App-header">
-						<Link to='/'>Noteful </Link>
-						{this.state.errors && <p>{this.state.errors}</p>}
+			<div className="App">
+				<div className="App-header">
+					<Link to='/'>Noteful </Link>
+					{this.state.errors && <p>{this.state.errors}</p>}
+
+				</div>
+				<ErrorBoundary>
+					<div className='SideNav'>
+						<Switch>
+							<Route path='/notes/:noteId' render={(routeProps) => {
+								const note = this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId));
+								if (note) {
+									const folder = { ...this.state.folders.find(folder => folder.id === note.folder_id) };
+									return (
+										<div>
+											<div>{folder.name}</div>
+											<Link to={'/folders/' + folder.id}>Go Back To</Link>
+										</div>)
+								}
+							}} />
+							<Route path='/folders/:folderId'
+								render={(routeProps) => <FolderList
+									id={parseInt(routeProps.match.params.folderId)} />} />
+							<Route exact path='/' render={(routeProps) => <FolderList />} />
+						</Switch>
+					</div>
+					<div className='Main'>
+						<Switch>
+							<Route path='/notes/:noteId'
+								render={(routeProps) =>
+									<DetailedNote note={this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId))} />
+								}
+							/>
+							<Route path='/folders/:folderId'
+								render={(routeProps) =>
+									<NoteList folderId={parseInt(routeProps.match.params.folderId)} />
+								}
+							/>
+							<Route exact path='/'
+								render={() =>
+									<NoteList />
+								}
+							/>
+						</Switch>
+
+						<button onClick={() => this.setState({ addingNote: true })}> Add Note</button>
+						{this.state.addingNote && <AddNote />}
 
 					</div>
-					<ErrorBoundary>
-						<div className='SideNav'>
-							<Switch>
-								<Route path='/notes/:noteId' render={(routeProps) => {
-									const note = this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId));
-									if (note) {
-										const folder = { ...this.state.folders.find(folder => folder.id === note.folder_id) };
-										return (
-											<div>
-												<div>{folder.name}</div>
-												<Link to={'/folders/' + folder.id}>Go Back To</Link>
-											</div>)
-									}
-								}} />
-								<Route path='/folders/:folderId'
-									render={(routeProps) => <FolderList
-										id={parseInt(routeProps.match.params.folderId)} />} />
-								<Route exact path='/' render={(routeProps) => <FolderList />} />
-							</Switch>
-						</div>
-						<div className='Main'>
-							<Switch>
-								<Route path='/notes/:noteId'
-									render={(routeProps) =>
-										<DetailedNote note={this.state.notes.find(note => note.id === parseInt(routeProps.match.params.noteId))} />
-									}
-								/>
-								<Route path='/folders/:folderId'
-									render={(routeProps) =>
-										<NoteList folderId={parseInt(routeProps.match.params.folderId)} />
-									}
-								/>
-								<Route exact path='/'
-									render={() =>
-										<NoteList />
-									}
-								/>
-							</Switch>
+				</ErrorBoundary>
+			</div>
 
-							<button onClick={() => this.setState({ addingNote: true })}> Add Note</button>
-							{this.state.addingNote && <AddNote />}
+		</NotefulContext.Provider>
 
-						</div>
-					</ErrorBoundary>
-				</div>
-
-			</NotefulContext.Provider>
-
-		)
-	}
+	)
+}
 }
 
 export default App;

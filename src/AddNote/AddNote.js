@@ -79,11 +79,12 @@ class AddNote extends React.Component {
         <div><label htmlFor='newNoteContent'>Write New Note
           <p className='error'> {this.validateNoteContent()}</p>
           </label>
-          <input id='newNoteContent' name='newNoteContent' type='textarea' required onChange={(e) => this.setNoteContent(e.target.value)}
-          ></input>
+          <textarea id='newNoteContent' name='newNoteContent' rows='15' required onChange={(e) => this.setNoteContent(e.target.value)}
+          ></textarea>
         </div>
 
         <button type="button" disabled={!this.state.selectedFolder || this.validateNoteContent() || this.validateNoteName()} onClick={this.handleAddNoteClick}>Add New Note</button>
+        <button type="reset" onClick={() => this.context.stopAdding()}>Cancel</button>
       </form>
     )
   }

@@ -5,11 +5,13 @@ import AddFolder from './AddFolder';
 import {Link} from "react-router-dom";
 import NotefulContext from '../NotefulContext';
 import PropTypes from 'prop-types';
+import DeleteFolder from './DeleteFolder';
 
 class FolderList extends Component {
     static contextType = NotefulContext;
     state = {
         addingFolder: {add: false},
+        deletingFolder: false
     }
 
 
@@ -31,6 +33,22 @@ class FolderList extends Component {
 
     }
 
+    handleDeleteFolder = (event) => {
+        try {
+            event.preventDefault();
+            const deleteFolderId = document.getElementById('addfolder-input').value
+
+            this.context.deleteFolder(deleteFolderId)
+            //API stuff
+            this.setState({
+                deletingFolder: false
+
+            })
+        } catch(error){
+            throw new Error(error)
+        }
+    }
+
     render() {
 
         return (
@@ -45,9 +63,12 @@ class FolderList extends Component {
                     this.setState({ addingFolder: { add: true } })}
                         >Add Folder</button>)
                 }
+                <button onClick={()=> this.setState({deletingFolder: true})}>Delete a Folder</button>
                 {this.state.addingFolder.add &&
                     (<AddFolder handleAddFolder={this.handleAddFolder} />)
                 }
+                {this.state.deletingFolder &&
+                    (<DeleteFolder handleDeleteFolder= {this.handleDeleteFolder}/>)}
             </div>);
     }
 }
