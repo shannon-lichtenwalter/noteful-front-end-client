@@ -1,11 +1,14 @@
 {
   "version": 2,
-  "alias": "noteful-app",
+  "alias": "shannon-noteful-app",
   "name": "noteful-app",
   "routes": [
     {
       "src": "^/static/(.*)",
       "dest": "/static/$1"
+    },
+    {
+      "handle":"filesystem"
     },
     {
       "src": ".*",
